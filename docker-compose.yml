@@ -1,0 +1,34 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: todo-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build: ./backend
+    image: todo-backend
+    container_name: todo-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGODB_URL=mongodb+srv://nijampurkarnakul_db_user:LtCPgTg5BDj5w2XE@cluster0.851kke4.mongodb.net/
+    depends_on:
+      - mongo
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: todo-nginx
+    container_name: todo-nginx
+    ports:
+      - "8081:80"
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:

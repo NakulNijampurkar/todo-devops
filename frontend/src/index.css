@@ -1,0 +1,66 @@
+/* === PAGE CENTERING === */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #1e1e1e;
+  color: #e5e5e5;
+  font-family: system-ui, sans-serif;
+}
+
+/* === APP CONTAINER === */
+.container {
+  width: 420px;
+}
+
+/* === INPUT GROUP === */
+.input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+/* === REMOVE DASH / BULLET === */
+ul {
+  list-style: none;        /* 🔥 THIS removes the dash */
+  padding: 0;
+  margin: 0;
+}
+
+/* === TODO ITEM === */
+li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+li span {
+  flex: 1;
+  cursor: pointer;
+}
+
+/* === COMPLETED TODO === */
+li.done span {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* === DELETE BUTTON === */
+button.delete {
+  background: #e53935;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+button.delete:hover {
+  background: #d32f2f;
+}
