@@ -52,7 +52,7 @@ jobs:
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
+        key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           docker login -u AWS -p $(aws ecr get-login-password --region ap-south-1) ${{ secrets.ECR_REGISTRY }}
 
