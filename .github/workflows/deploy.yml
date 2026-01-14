@@ -60,7 +60,7 @@ jobs:
           docker stop todo-backend || true
           docker rm todo-backend || true
           docker run -d \
-            --name backend \
+            --name todo-backend \
             -p 3000:3000 \
             -e MONGODB_URL=${{ secrets.MONGO_URL }} \
             --restart unless-stopped \
