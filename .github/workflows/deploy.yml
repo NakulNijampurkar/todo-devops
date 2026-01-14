@@ -1,93 +1,76 @@
-name: Deploy Backend & Nginx
+name: CI-CD Todo App
 
 on:
   push:
     branches: ["main"]
-    paths:
-      - "backend/**"
-      - "nginx/**"
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    # 1️⃣ Checkout code
-    - name: Checkout code
+    - name: Checkout repo
       uses: actions/checkout@v4
 
-    # 2️⃣ Debugging Step (Check if files exist)
-    - name: List files in repository
-      run: |
-        echo "Listing all files to verify structure:"
-        ls -R
-
-    # 3️⃣ Configure AWS credentials
-    - name: Configure AWS
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+        aws-region: ap-south-1
 
-    # 4️⃣ Login to Amazon ECR
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
-    # 5️⃣ Build & Push Backend image
-    - name: Build & Push Backend Image
+    
+
+    # 🟢 Backend Image
+    - name: Build & Push Backend
       run: |
-        # -f tells Docker exactly where the file is
-        docker build -f backend/dockerfile -t todo-backend ./backend
+        docker build \
+          -f backend/Dockerfile \
+          -t todo-backend \
+          backend
+
         docker tag todo-backend:latest ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
         docker push ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
 
-    # 6️⃣ Build & Push Nginx image
-    - name: Build & Push Nginx Image
+    # 🟢 Nginx Image
+    - name: Build & Push Nginx
       run: |
-        # Using explicit path for Nginx as well
-        docker build -f nginx/dockerfile -t todo-nginx ./nginx
+        docker build \
+          -f nginx/Dockerfile \
+          -t todo-nginx \
+          nginx
+
         docker tag todo-nginx:latest ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
         docker push ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
 
-    # 7️⃣ Deploy on EC2
+    # 🟢 Deploy to EC2
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
+        username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         script: |
-          set -e
-          
-          # Login to ECR on EC2
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-          
-          # Create internal network if it doesn't exist
-          docker network create todo-app-net || true
+          docker login -u AWS -p $(aws ecr get-login-password --region ap-south-1) ${{ secrets.ECR_REGISTRY }}
 
-          # --- Backend Deployment ---
           docker pull ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
           docker stop todo-backend || true
           docker rm todo-backend || true
           docker run -d \
             --name todo-backend \
-            --network todo-app-net \
             -p 3000:3000 \
-            -e MONGODB_URL="${{ secrets.MONGO_URL }}" \
+            -e MONGODB_URL=${{ secrets.MONGO_URL }} \
             --restart unless-stopped \
             ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
 
-          # --- Nginx Deployment ---
           docker pull ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
           docker stop todo-nginx || true
           docker rm todo-nginx || true
           docker run -d \
             --name todo-nginx \
-            --network todo-app-net \
             -p 80:80 \
             --restart unless-stopped \
             ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
-
-          # --- Cleanup ---
-          docker image prune -f
