@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import './index.css';
 
-const API_URL = 'http://localhost:3000';
+
 
 function App() {
   const [todos, setTodos] = useState([]);
   const [text, setText] = useState('');
 
   const fetchTodos = async () => {
-    const res = await fetch(`${API_URL}/todos`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/todos`);
     const data = await res.json();
     setTodos(data);
   };
@@ -19,7 +19,7 @@ function App() {
 
   const addTodo = async () => {
     if (!text) return;
-    await fetch(`${API_URL}/todos`, {
+    await fetch(`${import.meta.env.VITE_API_URL}/todos`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
@@ -29,12 +29,12 @@ function App() {
   };
 
   const toggleTodo = async (id) => {
-    await fetch(`${API_URL}/todos/${id}`, { method: 'PUT' });
+    await fetch(`${import.meta.env.VITE_API_URL}/todos/${id}`, { method: 'PUT' });
     fetchTodos();
   };
 
   const deleteTodo = async (id) => {
-    await fetch(`${API_URL}/todos/${id}`, { method: 'DELETE' });
+    await fetch(`${import.meta.env.VITE_API_URL}/todos/${id}`, { method: 'DELETE' });
     fetchTodos();
   };
 
