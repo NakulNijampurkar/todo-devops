@@ -62,7 +62,7 @@ jobs:
           docker run -d \
             --name todo-backend \
             -p 3000:3000 \
-            -e MONGODB_URL=backend.env \
+            -e MONGODB_URL=${{ secrets.MONGO_URL }} \
             --restart unless-stopped \
             ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
 
