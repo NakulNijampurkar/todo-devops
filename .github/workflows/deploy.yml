@@ -1,19 +1,22 @@
-name: Deploy Backend
+name: Deploy Backend & Nginx
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - "backend/**"
+      - "nginx/**"
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+    # 1️⃣ Checkout code
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 2️⃣ Configure AWS credentials
     - name: Configure AWS
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -21,15 +24,25 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+    # 3️⃣ Login to Amazon ECR
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
+    # 4️⃣ Build & Push Backend image
     - name: Build & Push Backend Image
       run: |
-        docker build -t todo-backend backend
+        docker build -t todo-backend ./backend
         docker tag todo-backend:latest ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
         docker push ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
 
+    # 5️⃣ Build & Push Nginx image
+    - name: Build & Push Nginx Image
+      run: |
+        docker build -t todo-nginx ./nginx
+        docker tag todo-nginx:latest ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
+        docker push ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
+
+    # 6️⃣ Deploy on EC2
     - name: Deploy on EC2
       uses: appleboy/ssh-action@v1.0.3
       with:
@@ -37,7 +50,11 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_KEY }}
         script: |
-          docker login -u AWS -p $(aws ecr get-login-password --region ap-south-1) ${{ secrets.ECR_REGISTRY }}
+          set -e
+
+          docker login -u AWS -p $(aws ecr get-login-password --region ${{ secrets.AWS_REGION }}) ${{ secrets.ECR_REGISTRY }}
+
+          # Backend
           docker pull ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
           docker stop todo-backend || true
           docker rm todo-backend || true
@@ -47,3 +64,13 @@ jobs:
             -e MONGODB_URL=${{ secrets.MONGO_URL }} \
             --restart unless-stopped \
             ${{ secrets.ECR_REGISTRY }}/todo-backend:latest
+
+          # Nginx
+          docker pull ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
+          docker stop todo-nginx || true
+          docker rm todo-nginx || true
+          docker run -d \
+            --name todo-nginx \
+            -p 80:80 \
+            --restart unless-stopped \
+            ${{ secrets.ECR_REGISTRY }}/todo-nginx:latest
